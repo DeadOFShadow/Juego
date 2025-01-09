@@ -1,110 +1,52 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-const blockSize = 20;
-let snake = [{ x: 10, y: 10 }];
-let food = { x: 15, y: 10 };
-let dx = 1;
-let dy = 0;
-let score = 0;
-let isGameOver = false;
+const cells = document.querySelectorAll('.cell');
+const titleHeader = document.querySelector('#titleHeader');
+let currentPlayer = 'X';
+let boardState = ['', '', '', '', '', '', '', '', ''];
 
-function drawBlock(x, y) {
-  ctx.fillStyle = "green";
-  ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
-  ctx.strokeStyle = "black";
-  ctx.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
+function choosePlayer(player) {
+    currentPlayer = player;
+    titleHeader.textContent = `Turno del Jugador ${player}`;
 }
 
-function drawSnake() {
-  snake.forEach(segment => drawBlock(segment.x, segment.y));
-}
+function markCell(index) {
+    if (boardState[index] === '' && !checkWinner()) {
+        boardState[index] = currentPlayer;
+        cells[index].textContent = currentPlayer;
 
-function drawFood() {
-  drawBlock(food.x, food.y);
-}
-
-function moveSnake() {
-  const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-  snake.unshift(head);
-  if (head.x === food.x && head.y === food.y) {
-    score += 10;
-    document.getElementById("score").innerText = score;
-    generateFood();
-  } else {
-    snake.pop();
-  }
-}
-
-function generateFood() {
-  food.x = Math.floor(Math.random() * (canvas.width / blockSize));
-  food.y = Math.floor(Math.random() * (canvas.height / blockSize));
-  snake.forEach(segment => {
-    if (food.x === segment.x && food.y === segment.y) {
-      generateFood();
+        if (checkWinner()) {
+            titleHeader.textContent = `¡Jugador ${currentPlayer} Gana!`;
+        } else if (boardState.every(cell => cell !== '')) {
+            titleHeader.textContent = '¡Es un Empate!';
+        } else {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            titleHeader.textContent = `Turno del Jugador ${currentPlayer}`;
+        }
     }
-  });
 }
 
-function checkCollision() {
-  const head = snake[0];
-  if (head.x < 0 || head.x >= canvas.width / blockSize || head.y < 0 || head.y >= canvas.height / blockSize) {
-    gameOver();
-  }
-  for (let i = 1; i < snake.length; i++) {
-    if (head.x === snake[i].x && head.y === snake[i].y) {
-      gameOver();
+function checkWinner() {
+    const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+    ];
+
+    for (const pattern of winPatterns) {
+        const [a, b, c] = pattern;
+        if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+            return true;
+        }
     }
-  }
+    return false;
 }
 
-function gameOver() {
-  isGameOver = true;
-  clearInterval(gameLoop);
-  document.getElementById("gameOverText").innerText = "Game Over! Your score: " + score;
-  document.getElementById("score").innerText = "0";
+function restartGame() {
+    boardState = ['', '', '', '', '', '', '', '', ''];
+    cells.forEach(cell => (cell.textContent = ''));
+    currentPlayer = 'X';
+    titleHeader.textContent = 'Elige un Jugador';
 }
 
-function clearCanvas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function updateGame() {
-  if (isGameOver) return;
-  clearCanvas();
-  drawSnake();
-  drawFood();
-  moveSnake();
-  checkCollision();
-}
-
-function keyDownHandler(event) {
-  const keyPressed = event.key;
-  if (keyPressed === "ArrowUp" && dy === 0) {
-    dx = 0;
-    dy = -1;
-  } else if (keyPressed === "ArrowDown" && dy === 0) {
-    dx = 0;
-    dy = 1;
-  } else if (keyPressed === "ArrowLeft" && dx === 0) {
-    dx = -1;
-    dy = 0;
-  } else if (keyPressed === "ArrowRight" && dx === 0) {
-    dx = 1;
-    dy = 0;
-  }
-}
-
-function startGame() {
-  snake = [{ x: 10, y: 10 }];
-  dx = 1;
-  dy = 0;
-  score = 0;
-  isGameOver = false;
-  document.getElementById("gameOverText").innerText = "";
-  document.getElementById("score").innerText = score;
-  generateFood();
-  gameLoop = setInterval(updateGame, 100);
-}
-
-document.addEventListener("keydown", keyDownHandler);
-            
+cells.forEach((cell, index) => {
+    cell.addEventListener('click', () => markCell(index));
+});
